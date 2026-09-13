@@ -9,7 +9,7 @@ from .paginators import CoursePaginator, LessonPaginator
 
 class CourseViewSet(viewsets.ModelViewSet):
     """CRUD для курса через ViewSet."""
-    queryset = Lesson.objects.all().order_by('id')
+    queryset = Course.objects.all().order_by('id')
     serializer_class = CourseSerializer
     pagination_class = CoursePaginator
 
@@ -27,8 +27,8 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         if self.request.user.groups.filter(name='moderators').exists():
-            return Course.objects.all()
-        return Course.objects.filter(owner=self.request.user)
+            return Course.objects.all().order_by('id')
+        return Course.objects.filter(owner=self.request.user).order_by('id')
 
     def get_serializer_context(self):
         """Передаём request в сериализатор для is_subscribed."""
@@ -37,7 +37,7 @@ class CourseViewSet(viewsets.ModelViewSet):
 
 
 class LessonListCreateAPIView(generics.ListCreateAPIView):
-    queryset = Lesson.objects.all()
+    queryset = Lesson.objects.all().order_by('id')
     serializer_class = LessonSerializer
     pagination_class = LessonPaginator
 
@@ -51,8 +51,8 @@ class LessonListCreateAPIView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         if self.request.user.groups.filter(name='moderators').exists():
-            return Lesson.objects.all()
-        return Lesson.objects.filter(owner=self.request.user)
+            return Lesson.objects.all().order_by('id')
+        return Lesson.objects.filter(owner=self.request.user).order_by('id')
 
 
 class LessonRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
