@@ -46,6 +46,7 @@ class Payment(models.Model):
     class PaymentMethod(models.TextChoices):
         CASH = 'cash', 'Наличные'
         TRANSFER = 'transfer', 'Перевод на счет'
+        STRIPE = 'stripe', 'Stripe'
 
     user = models.ForeignKey(
         'User', on_delete=models.CASCADE, verbose_name='Пользователь',
@@ -66,6 +67,23 @@ class Payment(models.Model):
     method = models.CharField(
         max_length=20, choices=PaymentMethod.choices,
         default=PaymentMethod.TRANSFER, verbose_name='Способ оплаты'
+    )
+
+    # Stripe поля
+    stripe_product_id = models.CharField(
+        max_length=255, blank=True, null=True, verbose_name='ID продукта в Stripe'
+    )
+    stripe_price_id = models.CharField(
+        max_length=255, blank=True, null=True, verbose_name='ID цены в Stripe'
+    )
+    stripe_session_id = models.CharField(
+        max_length=255, blank=True, null=True, verbose_name='ID сессии в Stripe'
+    )
+    payment_url = models.URLField(
+        max_length=500, blank=True, null=True, verbose_name='Ссылка на оплату'
+    )
+    is_paid = models.BooleanField(
+        default=False, verbose_name='Оплачено'
     )
 
     def __str__(self):
