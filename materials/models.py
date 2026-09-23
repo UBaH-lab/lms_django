@@ -29,6 +29,8 @@ class Lesson(models.Model):
     description = models.TextField(blank=True, null=True, verbose_name='Описание')
     preview = models.ImageField(upload_to='lessons/', blank=True, null=True, verbose_name='Превью')
     video_link = models.URLField(blank=True, null=True, verbose_name='Ссылка на видео')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+
     course = models.ForeignKey(
         Course,
         on_delete=models.CASCADE,
