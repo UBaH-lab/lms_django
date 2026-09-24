@@ -39,3 +39,57 @@ class User(AbstractUser):
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
+
+class Payment(models.Model):
+    """Платёж за курс или урок."""
+
+    class PaymentMethod(models.TextChoices):
+        CASH = 'cash', 'Наличные'
+        TRANSFER = 'transfer', 'Перевод на счет'
+        STRIPE = 'stripe', 'Stripe'
+
+    user = models.ForeignKey(
+        'User', on_delete=models.CASCADE, verbose_name='Пользователь',
+        related_name='payments'
+    )
+    date = models.DateTimeField(auto_now_add=True, verbose_name='Дата оплаты')
+    paid_course = models.ForeignKey(
+        'materials.Course', on_delete=models.SET_NULL, null=True, blank=True,
+        verbose_name='Оплаченный курс', related_name='payments'
+    )
+    paid_lesson = models.ForeignKey(
+        'materials.Lesson', on_delete=models.SET_NULL, null=True, blank=True,
+        verbose_name='Оплаченный урок', related_name='payments'
+    )
+    amount = models.DecimalField(
+        max_digits=10, decimal_places=2, verbose_name='Сумма оплаты'
+    )
+    method = models.CharField(
+        max_length=20, choices=PaymentMethod.choices,
+        default=PaymentMethod.TRANSFER, verbose_name='Способ оплаты'
+    )
+
+    # Stripe поля
+    stripe_product_id = models.CharField(
+        max_length=255, blank=True, null=True, verbose_name='ID продукта в Stripe'
+    )
+    stripe_price_id = models.CharField(
+        max_length=255, blank=True, null=True, verbose_name='ID цены в Stripe'
+    )
+    stripe_session_id = models.CharField(
+        max_length=255, blank=True, null=True, verbose_name='ID сессии в Stripe'
+    )
+    payment_url = models.URLField(
+        max_length=500, blank=True, null=True, verbose_name='Ссылка на оплату'
+    )
+    is_paid = models.BooleanField(
+        default=False, verbose_name='Оплачено'
+    )
+
+    def __str__(self):
+        return f'{self.user.email} — {self.amount} руб.'
+
+    class Meta:
+        verbose_name = 'Платёж'
+        verbose_name_plural = 'Платежи'
+        ordering = ['-date']
