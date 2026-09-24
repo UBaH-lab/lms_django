@@ -5,8 +5,6 @@ from .models import Course, Lesson, Subscription
 from .serializers import CourseSerializer, LessonSerializer, SubscriptionSerializer
 from users.permissions import IsOwner, IsNotModerator, IsModeratorOrOwner
 from .paginators import CoursePaginator, LessonPaginator
-from datetime import timedelta
-from django.utils import timezone
 from materials.tasks import send_course_update_notification
 
 
@@ -27,6 +25,11 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
+
+    def perform_update(self, serializer):
+        """Сохраняем курс и запускаем задачу рассылки подписчикам."""
+        instance = serializer.save()
+        send_course_update_notification.delay(instance.id)
 
     def get_queryset(self):
         if self.request.user.groups.filter(name='moderators').exists():
@@ -106,35 +109,3 @@ class SubscriptionDestroyAPIView(generics.DestroyAPIView):
             user=self.request.user,
             course_id=course_id
         )
-
-class CourseUpdateAPIView(generics.UpdateAPIView):
-    """Обновление курса — после успеха шлём письмо подписчикам."""
-    queryset = Course.objects.all()
-    serializer_class = CourseSerializer
-    permission_classes = [IsModeratorOrOwner]
-
-    def perform_update(self, serializer):
-        """Сохраняем и запускаем задачу рассылки."""
-        instance = serializer.save()
-        # Задача уходит в Celery — клиент не ждёт отправку письма
-        send_course_update_notification.delay(instance.id)
-
-class LessonUpdateAPIView(generics.UpdateAPIView):
-    """
-    Обновление урока — письмо отправляем ТОЛЬКО если курс
-    не обновлялся более 4 часов (доп. задание *).
-    """
-    queryset = Lesson.objects.all()
-    serializer_class = LessonSerializer
-    permission_classes = [IsModeratorOrOwner]
-
-    def perform_update(self, serializer):
-        instance = serializer.save()
-
-        course = instance.course
-        # Проверяем: курс обновлялся > 4 часов назад?
-        time_since_update = timezone.now() - course.updated_at
-
-        if time_since_update > timedelta(hours=4):
-            # Курс давно не обновлялся → шлём уведомление подписчикам
-            send_course_update_notification.delay(course.id)
